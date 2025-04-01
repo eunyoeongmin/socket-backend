@@ -64,4 +64,20 @@ export class ChatService {
     }
     return room;
   }
+
+  // 채팅저장
+  async saveMessage(roomId: string, message: string, sender: string): Promise<void> {
+    await this.chatRoomModel.updateOne(
+      { roomId },
+      {
+        $push: {
+          messages: {
+            text: message,
+            sender,
+            timestamp: new Date(),
+          },
+        },
+      },
+    );
+  }
 }

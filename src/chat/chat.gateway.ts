@@ -27,6 +27,13 @@ export class ChatGateway implements OnGatewayDisconnect {
   async handleCreateRoom(client: Socket, roomName: string) {
     const newRoom = await this.chatService.createRoom(roomName);
     this.server.emit('roomCreated', newRoom);
+    try {
+      const updatedRoom = await this.chatService.addParticipant(newRoom.roomId, client.id);
+      client.join(newRoom.roomId);
+      this.server.emit('roomUpdated', updatedRoom); // 모든 클라이언트에게 방 정보 업데이트
+    } catch (error) {
+      client.emit('error', error.message);
+    }
   }
 
   // 방 입장
@@ -51,5 +58,11 @@ export class ChatGateway implements OnGatewayDisconnect {
     } catch (error) {
       client.emit('error', error.message);
     }
+  }
+
+  @SubscribeMessage('sendMessage')
+  async handleSendMessage(client: Socket, { roomId, message, sender }: { roomId: string; message: string; sender: string }) {
+    await this.chatService.saveMessage(roomId, message, sender);
+    this.server.to(roomId).emit('messageReceived', message, sender);
   }
 }
